@@ -1,6 +1,9 @@
 # Spectre/Ghostbin
 
-This is a "Updated version" of Spectre (formerly known as Ghostbin)
+A personal modification of Spectre (formerly known as Ghostbin). Based from borrougagnou/spectre-updated. Original credit to borrougagnou and 
+DHowett.
+
+Feature from borrougagnou/spectre-updated :
  - Login/Password system work again
  - Golang 1.24.0
  - Node 22.14.0 LTS (npm 10.9.2)

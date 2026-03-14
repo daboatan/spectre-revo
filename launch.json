@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Spectre",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "args": [
+                "-addr", "127.0.0.1:8080",
+                "-root", "data",
+                "-log_dir", "logs",
+                "-rebuild", "true",
+                "--logtostderr", "1"
+            ],
+            "env": {
+                "DEBUG": "true"
+            },
+            "showLog": true
+        }
+    ]
+}

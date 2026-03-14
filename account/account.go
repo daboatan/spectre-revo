@@ -116,9 +116,9 @@ func (f *FilesystemStore) Save(user *User) error {
 		return err
 	}
 
-	defer file.Close()
 	enc := gob.NewEncoder(file)
 	err = enc.Encode(user)
+	file.Close() // Close before rename for Windows compatibility
 	if err != nil {
 		return err
 	}

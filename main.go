@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/borrougagnou/spectre-updated/account"
 	"github.com/DHowett/gotimeout"
+	"github.com/borrougagnou/spectre-updated/account"
 	"github.com/golang/glog"
 	"github.com/golang/groupcache/lru"
 	"github.com/gorilla/mux"
@@ -85,7 +85,7 @@ func getPasteJSONHandler(o Model, w http.ResponseWriter, r *http.Request) {
 		"language":   p.Language,
 		"encrypted":  p.Encrypted,
 		"expiration": p.Expiration,
-		"body":       string(buf.Bytes()),
+		"body":       buf.String(),
 	}
 
 	json, _ := json.Marshal(pasteMap)
@@ -350,11 +350,10 @@ func pasteCreate(w http.ResponseWriter, r *http.Request) {
 
 		pasteKeys[p.ID] = key
 		cliSession.Values["paste_keys"] = pasteKeys
-	}
-
-	err = sessions.Save(r, w)
-	if err != nil {
-		glog.Errorln(err)
+		err = cliSession.Save(r, w)
+		if err != nil {
+			glog.Errorln(err)
+		}
 	}
 
 	pasteUpdateCore(p, w, r, true)
@@ -476,7 +475,7 @@ func authenticatePastePOSTHandler(w http.ResponseWriter, r *http.Request) {
 
 		pasteKeys[id] = key
 		cliSession.Values["paste_keys"] = pasteKeys
-		sessions.Save(r, w)
+		err := cliSession.Save(r, w)
 		if err != nil {
 			glog.Errorln(err)
 		}
@@ -711,6 +710,10 @@ func init() {
 	gob.Register(map[PasteID][]byte(nil))
 	gob.Register(&PastePermissionSet{})
 	gob.Register(PastePermission{})
+	gob.Register(map[PasteID]PastePermission(nil))
+	gob.Register(map[string]interface{}(nil))
+	gob.Register(PasteID(""))
+	gob.Register(&account.User{})
 
 	arguments.register()
 	arguments.parse()
@@ -797,28 +800,30 @@ func init() {
 	sessionStore = sessions.NewFilesystemStore(sesdir, sessionKey)
 	clientOnlySessionStore = sessions.NewCookieStore(sessionKey, clientOnlySessionEncryptionKey)
 	clientLongtermSessionStore = sessions.NewCookieStore(sessionKey, clientOnlySessionEncryptionKey)
-	
+
 	// Configure stores options
 	sessionStore.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   86400 * 365,
-		Secure:   Env() != EnvironmentDevelopment, // Must match other stores
+		Secure:   Env() == EnvironmentProduction,
+		SameSite: http.SameSiteLaxMode,
 	}
 
 	clientOnlySessionStore.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   0,
 		HttpOnly: true,
-		Secure:   Env() != EnvironmentDevelopment, // Must match other stores
+		Secure:   Env() == EnvironmentProduction,
+		SameSite: http.SameSiteLaxMode,
 	}
 
 	clientLongtermSessionStore.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   86400 * 365,
 		HttpOnly: true,
-		Secure:   Env() != EnvironmentDevelopment, // Must match other stores
+		Secure:   Env() == EnvironmentProduction,
+		SameSite: http.SameSiteLaxMode,
 	}
-
 
 	pastedir := filepath.Join(arguments.root, "pastes")
 	os.Mkdir(pastedir, 0700)
@@ -836,10 +841,8 @@ func init() {
 	os.Mkdir(accountPath, 0700)
 	userStore = &PromoteFirstUserToAdminStore{
 		Path: accountPath,
-		AccountStore: &CachingUserStore{
-			AccountStore: &ManglingUserStore{
-				account.NewFilesystemStore(accountPath, &AuthChallengeProvider{}),
-			},
+		AccountStore: &ManglingUserStore{
+			account.NewFilesystemStore(accountPath, &AuthChallengeProvider{}),
 		},
 	}
 }
@@ -852,14 +855,11 @@ func main() {
 
 	// Start monitoring the Expirator error channel
 	go func() {
-		for {
-			select {
-			case err := <-pasteExpirator.ErrorChannel:
-				if err == io.EOF {
-					glog.Error("Expirator encountered EOF. Possible corruption in expiry.gob.")
-				} else {
-					glog.Error("Expirator Error: ", err)
-				}
+		for err := range pasteExpirator.ErrorChannel {
+			if err == io.EOF {
+				glog.Error("Expirator encountered EOF. Possible corruption in expiry.gob.")
+			} else {
+				glog.Error("Expirator Error: ", err)
 			}
 		}
 	}()
@@ -888,7 +888,7 @@ func main() {
 		}
 	})
 	healthServer.RegisterComputedMetric("uptime", func() interface{} {
-		return int(time.Now().Sub(launchTime) / time.Second)
+		return int(time.Since(launchTime) / time.Second)
 	})
 
 	router = mux.NewRouter()
@@ -1008,7 +1008,7 @@ func main() {
 		} else {
 			stats["cached"] = fmt.Sprintf("%d", renderCache.c.Len())
 		}
-		dur := time.Now().Sub(launchTime)
+		dur := time.Since(launchTime)
 		dur = dur - (dur % time.Second)
 		stats["uptime"] = fmt.Sprintf("%v", dur)
 		stats["expiring"] = fmt.Sprintf("%d", pasteExpirator.Len())
@@ -1040,4 +1040,3 @@ func main() {
 		glog.Fatal("Server error: ", err)
 	}
 }
-

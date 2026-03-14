@@ -1,61 +1,79 @@
-# Spectre/Ghostbin
+# Spectre (Revolution)
 
-A personal modification of Spectre (formerly known as Ghostbin). Based from borrougagnou/spectre-updated. Original credit to borrougagnou and 
-DHowett.
+Spectre is a modern, privacy-focused pastebin application written in Go. It is a feature-rich evolution of the Ghostbin platform, designed for performance, security, and ease of deployment.
 
-Feature from borrougagnou/spectre-updated :
- - Login/Password system work again
- - Golang 1.24.0
- - Node 22.14.0 LTS (npm 10.9.2)
- - go  module updated to latest version (go.mod)
- - npm module updated to latest version (package.json)
- - Fixed some bug when launching the program
+## Features
 
+- **Encrypted Pastes:** Secure client-side and server-side encryption options.
+- **Syntax Highlighting:** Automatic detection and support for hundreds of languages.
+- **Paste Expiration:** Set pastes to expire after a specific duration (minutes to days).
+- **User Accounts:** Optional accounts to track and manage your "My Pastes" list across devices.
+- **Admin Dashboard:** Tools for managing reports, promoting users, and moderating content.
+- **Low Footprint:** No heavy database required; uses a high-performance filesystem-based storage system.
+- **Responsive UI:** Built with LESS and optimized for both desktop and mobile.
 
-## changelog (YYYYMMDD)
-#### 20250221
- - Fixed the securecookie: the value is not valid
- - Improve the error message when failed to found the session
- - Create session before adding the option
- - Prevent the clientOnlySessionEncryptionKey to be null
- - Add the Environment variable when we launch the program (dev,prod)
+## Getting Started
 
-#### 20250215
- - change name "ghostbin" by "specte"/"spectre-updated" on multiple location.
- - Updated golang 1.21.4 --> 1.24.0
- - Updated nodeJS 20.10.0 --> 22.14.0
- - Updated npm 10.2.3 --> 10.9.2
- - go  module updated to latest version (go.mod)
- - npm module updated to latest version (package.json)
- - Fixed SessionKey problem and increase verbosity
- - Increase verbosity when the port is listening
+### Prerequisites
 
-#### 20231129
- - change name of default branch `v1-stable` --> `stable`
- - add tag `2.0` for the 20231129 update
- - add tag `1.0` for the 20220211 update
- - Updated golang 1.17 --> 1.21.4
- - Updated nodeJS 16.14.0 --> 20.10.0
- - Updated npm 8.3.1 --> 10.2.3
- - go  module updated to latest version (go.mod)
- - npm module updated to latest version (package.json)
+- [Go](https://golang.org/dl/) 1.21 or higher
+- [Node.js & NPM](https://nodejs.org/) (for asset compilation)
+- [GCC](https://gcc.gnu.org/) (required for some security dependencies like `scrypt`)
 
-#### 20220211
- - Fix Login/Password system
- - golang 1.17
- - nodeJS 16.14.0 LTS (npm 8.3.1)
- - go  module updated to latest version (go.mod)
- - npm module updated to latest version (package.json)
+### Quick Start
 
+1. **Install Dependencies:**
+   ```bash
+   go mod download
+   npm install
+   ```
 
-## Audit Security (20250215)
-![npm vulnerability.png](./img/npm-vulnerability-20250215.png)
+2. **Initialize Keys:**
+   The server will automatically generate `session.key` and `client_session_enc.key` on its first run if they don't exist.
 
-[Nancy tool to check vulnerabilities in Golang dependencies](https://github.com/sonatype-nexus-community/nancy)
-![go vulnerability.png](./img/go-vulnerability-20250215.png)
+3. **Run the Server:**
+   ```bash
+   go run .
+   ```
+   The app will be available at `http://localhost:8080`.
 
+## Development Workflow
 
+To develop effectively without having to restart the server for every HTML change:
 
-## Debug install
+### Template Hot-Reloading
+Run the server with the `-rebuild` flag. This forces the Go engine to re-parse `.tmpl` files on every request.
+```bash
+go run . -rebuild
+```
 
-just launch `install.sh`
+### Debugging Sessions
+To see detailed identity tracing and session logs (useful for debugging login issues):
+```bash
+go run . -v=2 -logtostderr
+```
+
+### Asset Management
+The project uses **Grunt** to manage frontend assets.
+- `grunt`: Builds and minifies CSS/JS for production.
+- `less.js`: Is used in development mode to compile styles in-browser.
+
+## Configuration
+
+Environment variables can be used to customize the instance:
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `SPECTRE_ENV` | Set to `production` to enable Secure cookies and minification. | `dev` |
+| `SPECTRE_BRAND` | Changes the site name displayed in the UI. | `Spectre` |
+
+## Storage Architecture
+
+Spectre avoids complex database setups by using the filesystem efficiently:
+- `accounts/`: User profiles and permissions (mangled for privacy).
+- `pastes/`: The raw content of pastes.
+- `sessions/`: Server-side session storage.
+
+## License
+
+This project is licensed under the GPL License - see the [LICENSE](LICENSE) file for details.

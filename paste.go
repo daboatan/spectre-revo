@@ -3,12 +3,13 @@ package main
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"github.com/DHowett/go-xattr"
-	"golang.org/x/crypto/scrypt"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/DHowett/go-xattr"
+	"golang.org/x/crypto/scrypt"
 )
 
 const CURRENT_ENCRYPTION_METHOD string = "2"

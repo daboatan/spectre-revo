@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/groupcache/lru"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/scrypt"
 )
 
@@ -35,20 +35,8 @@ type authReply struct {
 }
 
 func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
-	clientSession, err := clientLongtermSessionStore.Get(r, "authentication")
-	if err != nil {
-		glog.Warningf("Failed to get authentication session: %v (Possible key mismatch or corrupt cookie)", err)
-		clientSession.Options.MaxAge = -1 // Delete cookie
-		sessions.Save(r, w)
-		glog.Warning("Invalid authentication session cleanup: Done !")
-	}
-	serverSession, err := sessionStore.Get(r, "session")
-	if err != nil {
-		glog.Warningf("Failed to get server session: %v (Possible key mismatch or corrupt cookie)", err)
-		serverSession.Options.MaxAge = -1 // Delete cookie
-		sessions.Save(r, w)
-		glog.Warning("Invalid server session cleanup: Done !")
-	}
+	clientSession, _ := clientLongtermSessionStore.Get(r, "authentication")
+	serverSession, _ := sessionStore.Get(r, "session")
 
 	reply := &authReply{
 		Status:    "invalid",
@@ -56,7 +44,7 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		w.WriteHeader(http.StatusOK)
+		// w.WriteHeader(http.StatusOK) // Removed to prevent header conflicts
 		enc := json.NewEncoder(w)
 		err := enc.Encode(reply)
 		if err != nil {
@@ -67,8 +55,8 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 	var user *account.User
 
 	loginType := r.FormValue("type")
-	if loginType == "username" {
-		// We don't have an assertion, hope we have a username/password
+	switch loginType {
+	case "username":
 		reply.Type = "username"
 		username, password, confirm := r.FormValue("username"), r.FormValue("password"), r.FormValue("confirm_password")
 
@@ -84,7 +72,6 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 				reply.InvalidFields = []string{"promote_token"}
 				return
 			}
-			// Stomp the username from the form.
 			username = v.(string)
 		}
 
@@ -143,7 +130,7 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-	} else if loginType == "persona" {
+	case "persona":
 		// BrowserID Assertion
 		reply.Type = "persona"
 
@@ -163,7 +150,7 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 			"audience":  {audience},
 		})
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			// w.WriteHeader(http.StatusInternalServerError)
 			glog.Error("Persona Verify Request Failed: ", err)
 			reply.Reason = "persona verification failed"
 			reply.ExtraData["error"] = err.Error()
@@ -175,7 +162,7 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 		var verifyResponseJSON map[string]interface{}
 		err = dec.Decode(&verifyResponseJSON)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			// w.WriteHeader(http.StatusInternalServerError)
 			glog.Error("Persona Verify JSON Decode Failed: ", err)
 			reply.Reason = "persona verification failed"
 			reply.ExtraData["error"] = err.Error()
@@ -212,7 +199,7 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			reply.Reason = verifyResponseJSON["reason"].(string)
 		}
-	} else if loginType == "token" {
+	case "token":
 		// Authentication Token
 		reply.Type = "token"
 
@@ -225,13 +212,13 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 
 		u, ok := ephStore.Get("A|U|" + token)
 		if !ok {
-			w.WriteHeader(http.StatusTeapot) // I'm a teapot.
+			// w.WriteHeader(http.StatusTeapot) // I'm a teapot.
 			reply.Reason = "that authenticated token isn't"
 			reply.InvalidFields = []string{"token"}
 			return
 		}
 		user = u.(*account.User)
-	} else {
+	default:
 		reply.Reason = "invalid login type"
 		reply.InvalidFields = []string{"type"}
 		return
@@ -239,6 +226,7 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	if user != nil {
 		healthServer.IncrementMetric("user.login")
+		glog.Infof("User '%s' (mangled: '%s') logging in from IP: %s", strings.ToLower(r.FormValue("username")), user.Name, SourceIPForRequest(r))
 
 		// *HACK*
 		// Inject the user into the request context for GetPastePermissions
@@ -248,11 +236,14 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 		// Attempt to aggregate user, session, and old perms.
 		pastePerms := GetPastePermissions(subr)
 		user.Values["permissions"] = pastePerms
+		glog.Infof("User %s permissions merged. Entries: %d", user.Name, len(pastePerms.Entries))
+
 		delete(serverSession.Values, "pastes")      // delete old perms
 		delete(serverSession.Values, "permissions") // delete new session perms
 
 		err := user.Save()
 		if err != nil {
+			glog.Errorf("Failed to save user %s: %v", user.Name, err)
 			reply.Reason = "failed to save user"
 			reply.ExtraData["error"] = err.Error()
 		} else {
@@ -260,9 +251,12 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 			reply.ExtraData["username"] = user.Name
 		}
 		clientSession.Values["account2"] = user.Name
-		err = sessions.Save(r, w)
-		if err != nil {
-			glog.Errorln(err)
+		
+		if err := clientSession.Save(r, w); err != nil {
+			glog.Errorf("Error saving client session for IP %s: %v", SourceIPForRequest(r), err)
+		}
+		if err := serverSession.Save(r, w); err != nil {
+			glog.Errorf("Error saving server session for IP %s: %v", SourceIPForRequest(r), err)
 		}
 
 		if token := r.FormValue("requested_auth_token"); token != "" {
@@ -276,7 +270,7 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 func authLogoutPostHandler(w http.ResponseWriter, r *http.Request) {
 	ses, _ := clientLongtermSessionStore.Get(r, "authentication")
 	delete(ses.Values, "account2")
-	err := sessions.Save(r, w)
+	err := ses.Save(r, w)
 	if err != nil {
 		glog.Errorln(err)
 	}
@@ -348,11 +342,23 @@ type userLookupWrapper struct {
 }
 
 func (u userLookupWrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ses, _ := clientLongtermSessionStore.Get(r, "authentication")
+	ses, err := clientLongtermSessionStore.Get(r, "authentication")
+	if err != nil {
+		glog.Infof("Authentication session load error (IP: %s): %v", SourceIPForRequest(r), err)
+	}
 	account, ok := ses.Values["account2"].(string)
 	if ok {
+		// Normalize to lowercase to match mangling logic
+		account = strings.ToLower(account)
 		user := userStore.Get(account)
-		r = r.WithContext(context.WithValue(r.Context(), userContextKey, user))
+		if user != nil {
+			glog.Infof("User recognized: '%s' (mangled: '%s') for IP: %s", account, user.Name, SourceIPForRequest(r))
+			r = r.WithContext(context.WithValue(r.Context(), userContextKey, user))
+		} else {
+			glog.Warningf("Account '%s' from session NOT FOUND in userStore for IP: %s", account, SourceIPForRequest(r))
+		}
+	} else {
+		glog.V(2).Infof("No active account session for IP: %s", SourceIPForRequest(r))
 	}
 	u.Handler.ServeHTTP(w, r)
 }
@@ -365,7 +371,7 @@ func (m *ManglingUserStore) mangle(name string) string {
 	if len(name) > 2 && name[:2] == "1$" {
 		return name
 	}
-	sum := sha256.Sum256([]byte(name))
+	sum := sha256.Sum256([]byte(strings.ToLower(name)))
 	return "1$" + base32Encoder.EncodeToString(sum[:])
 }
 

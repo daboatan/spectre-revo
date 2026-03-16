@@ -29,9 +29,11 @@ build
 ghostbin
 spectre
 spectre-updated
+spectre-*
 debug_bin*
 
 # FROM THE APP
 logs/*
 data/*
 pastes/*
+tmp/

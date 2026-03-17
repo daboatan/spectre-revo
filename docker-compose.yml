@@ -1,0 +1,22 @@
+# Docker Compose setup for Spectre
+
+version: '3.8'
+
+services:
+  spectre:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: spectre
+    container_name: spectre-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PORT=${PORT:-8080}
+      - SPECTRE_ENV=${SPECTRE_ENV:-production}
+      - SPECTRE_BRAND=${SPECTRE_BRAND:-Spectre}

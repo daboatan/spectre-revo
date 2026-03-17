@@ -26,6 +26,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 var VERSION string = "<local build>"
@@ -691,8 +692,19 @@ type args struct {
 
 func (a *args) register() {
 	a.registrationOnce.Do(func() {
+		defaultAddr := os.Getenv("ADDR")
+		if defaultAddr == "" {
+			defaultAddr = os.Getenv("PORT")
+			if defaultAddr != "" && !strings.Contains(defaultAddr, ":") {
+				defaultAddr = "0.0.0.0:" + defaultAddr
+			}
+		}
+		if defaultAddr == "" {
+			defaultAddr = "0.0.0.0:8080"
+		}
+
 		flag.StringVar(&a.root, "root", "./", "path to generated file storage")
-		flag.StringVar(&a.addr, "addr", "0.0.0.0:8080", "bind address and port")
+		flag.StringVar(&a.addr, "addr", defaultAddr, "bind address and port")
 		flag.BoolVar(&a.rebuild, "rebuild", false, "rebuild all templates for each request")
 	})
 }

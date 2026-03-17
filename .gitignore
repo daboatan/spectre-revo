@@ -37,3 +37,4 @@ logs/*
 data/*
 pastes/*
 tmp/
+.env

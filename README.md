@@ -35,7 +35,7 @@ Spectre is a modern, privacy-focused pastebin application written in Go. It is a
    ```bash
    go run .
    ```
-   The app will be available at `http://localhost:8080`.
+   By default app will use port (8080), and be available at `http://localhost:8080`.
 
 ## Development Workflow
 
@@ -60,12 +60,51 @@ The project uses **Grunt** to manage frontend assets.
 
 ## Configuration
 
-Environment variables can be used to customize the instance:
+Environment variables can be used to customize the instance. You can set them in your environment or place them in a `.env` file in the root directory.
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
+| `PORT` or `ADDR` | Binds the server to the specified port (e.g., `3000`) or address. | `0.0.0.0:8080` |
 | `SPECTRE_ENV` | Set to `production` to enable Secure cookies and minification. | `dev` |
 | `SPECTRE_BRAND` | Changes the site name displayed in the UI. | `Spectre` |
+
+## Deployment
+
+### Docker Compose
+It is recommended to use Docker to run Spectre in production. The repository includes an `.env.example` file to help you get started.
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+2. Start the container in detached mode:
+   ```bash
+   docker compose up -d
+   ```
+This setup automatically mounts the `data` directory for persistence and reads the environment variables defined in your `.env` file.
+
+### Manual Deployment (VPS/Bare Metal)
+If you prefer not to use Docker, you can run Spectre directly on your server.
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/borrougagnou/spectre-updated.git
+   cd spectre-updated
+   ```
+2. **Install requirements:**
+   You will need Go (>= 1.21) and Node.js installed.
+3. **Configure Environment:**
+   Copy the example environment file and edit it to suit your needs:
+   ```bash
+   cp .env.example .env
+   ```
+4. **Use the Install Script:**
+   The repository includes an `install.sh` script to help install dependencies and build the binary:
+   ```bash
+   chmod +x install.sh
+   ./install.sh
+   ```
+   *Note*: The application by default runs on port `8619` via the install script or standard Go port `8080` if run directly, but this can be changed in your `.env` file.
 
 ## Storage Architecture
 

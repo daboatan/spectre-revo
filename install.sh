@@ -64,7 +64,8 @@ dependancy_install
 
 go build
 
-echo "# SPECTRE LAUNCHED"
-./spectre-updated -addr="0.0.0.0:8619" -log_dir="logs" -root="data" --logtostderr=1
+PORT="${PORT:-8619}"
+echo "# SPECTRE LAUNCHED ON PORT $PORT"
+./spectre-updated -addr="0.0.0.0:$PORT" -log_dir="logs" -root="data" --logtostderr=1
 
 echo "===END==="

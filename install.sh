@@ -53,12 +53,6 @@ function dependancy_install()
   if [ ! -d data ]; then
     mkdir data
   fi
-  if [ ! -f data/expiry.gob ]; then
-    touch data/expiry.gob
-  fi
-  if [ ! -f data/session.key ]; then
-    touch data/session.key
-  fi
 
 }
 

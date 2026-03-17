@@ -1,7 +1,7 @@
 # Spectre (Revolution)
 
+<img width="1536" height="395" alt="spectre-revo-banner-copilot" src="https://github.com/user-attachments/assets/b2787233-cddf-4493-a059-dc49987f8e38" />
 Spectre is a modern, privacy-focused pastebin application written in Go. It is a feature-rich evolution of the Ghostbin platform, designed for performance, security, and ease of deployment.
-
 ## Features
 
 - **Encrypted Pastes:** Secure client-side and server-side encryption options.

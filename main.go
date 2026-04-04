@@ -715,6 +715,12 @@ func (a *args) parse() {
 	})
 }
 
+func mustMkdirAll(path string, perm os.FileMode) {
+	if err := os.MkdirAll(path, perm); err != nil {
+		glog.Fatalf("failed to create directory %s: %v", path, err)
+	}
+}
+
 var arguments = &args{}
 
 func init() {
@@ -729,6 +735,7 @@ func init() {
 
 	arguments.register()
 	arguments.parse()
+	mustMkdirAll(arguments.root, 0700)
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	RegisterTemplateFunction("encryptionAllowed", func(ri *RenderContext) bool { return Env() == EnvironmentDevelopment || RequestIsHTTPS(ri.Request) })
@@ -777,7 +784,7 @@ func init() {
 	RegisterTemplateFunction("requestVariable", requestVariable)
 
 	sesdir := filepath.Join(arguments.root, "sessions")
-	os.Mkdir(sesdir, 0700)
+	mustMkdirAll(sesdir, 0700)
 
 	// Load sessionKey (hash key)
 	sessionKeyFile := filepath.Join(arguments.root, "session.key")
@@ -838,7 +845,7 @@ func init() {
 	}
 
 	pastedir := filepath.Join(arguments.root, "pastes")
-	os.Mkdir(pastedir, 0700)
+	mustMkdirAll(pastedir, 0700)
 	pasteStore = NewFilesystemPasteStore(pastedir)
 	pasteStore.PasteDestroyCallback = PasteCallback(pasteDestroyCallback)
 
@@ -850,7 +857,7 @@ func init() {
 	ephStore = gotimeout.NewMap()
 
 	accountPath := filepath.Join(arguments.root, "accounts")
-	os.Mkdir(accountPath, 0700)
+	mustMkdirAll(accountPath, 0700)
 	userStore = &PromoteFirstUserToAdminStore{
 		Path: accountPath,
 		AccountStore: &ManglingUserStore{

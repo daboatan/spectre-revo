@@ -2,31 +2,33 @@
 FROM golang:1.24-alpine AS go-builder
 WORKDIR /build
 
-# Alpine dependencies required for some Go tools/CGO (like scrypt)
+# Only keep this if your app truly needs CGO
 RUN apk add --no-cache gcc musl-dev
 
-# Copy Go modules and install dependencies
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source code and build
 COPY . .
-RUN go build -o spectre-updated
+
+# Safer for Alpine runtime
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /build/spectre-updated
 
 # Stage 2: Final lightweight image
-FROM alpine:latest
+FROM alpine:3.20
 WORKDIR /app
 
-# Add required dependencies for the app runtime
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata \
+    && adduser -D -h /app appuser \
+    && mkdir -p /app/data /app/public /app/templates /app/logs \
+    && chown -R appuser:appuser /app
 
-# Copy the built Go binary from stage 1
-COPY --from=go-builder /build/spectre-updated .
-COPY --from=go-builder /build/public ./public
-COPY --from=go-builder /build/templates ./templates
+COPY --from=go-builder /build/spectre-updated /app/spectre-updated
+COPY --from=go-builder /build/public /app/public
+COPY --from=go-builder /build/templates /app/templates
+COPY --from=go-builder /build/languages.yml /app/languages.yml
 
-# Expose the application port
+USER appuser
+
 EXPOSE 8080
 
-# Command to run the executable
-CMD ["./spectre-updated", "-log_dir=logs", "-root=data", "--logtostderr=1"]
+CMD ["./spectre-updated","-log_dir=/app/logs","-root=/app/data","--logtostderr=1"]

@@ -88,8 +88,8 @@ If you prefer not to use Docker, you can run Spectre directly on your server.
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/borrougagnou/spectre-updated.git
-   cd spectre-updated
+   git clone https://github.com/daboatan/spectre-revo.git
+   cd spectre-revo
    ```
 2. **Install requirements:**
    You will need Go (>= 1.21) and Node.js installed.

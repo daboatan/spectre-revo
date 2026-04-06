@@ -1,12 +1,19 @@
-{{define "admin_home_title"}}Administration{{end}}
-{{define "admin_home_body"}}
+{{define "admin_dashboard_title"}}Administration (Dashboard){{end}}
+{{define "admin_dashboard_body"}}
 <div class="paste-toolbox">
 	{{template "home-button"}}
 	<span class="paste-title">
-		<strong>Administration</strong>
+		<strong>Administration (Dashboard)</strong>
 	</span>
 </div>
 <div class="content admin-content">
+	<div class="well admin-links">
+		<a class="btn" href="/admin">Admin Home</a>
+		<a class="btn" href="/admin/reports">Reports</a>
+		<a class="btn" href="/admin/pastes">Pastes</a>
+		<a class="btn" href="/admin/users">Users</a>
+	</div>
+
 	<div class="admin-cards">
 		<div class="well admin-card">
 			<div class="admin-kpi-label">Pastes</div>
@@ -30,19 +37,13 @@
 		</div>
 	</div>
 
-	<div class="well admin-links">
-		<a class="btn" href="/admin/dashboard">Dashboard</a>
-		<a class="btn" href="/admin/reports">Reports</a>
-		<a class="btn" href="/admin/pastes">Pastes</a>
-		<a class="btn" href="/admin/users">Users</a>
-	</div>
-
 	<div class="well">
 		<form method="POST" action="/admin/promote">
 			<div class="input-prepend phone-expand">
 				<span class="add-on"><i class="icon icon-user"> </i></span>
 				<div class="input-wrapper"><input type="text" name="username" autocomplete="off" placeholder="Username"></div>
 			</div>
+			<input type="hidden" name="redir" value="dashboard">
 			<button class="btn btn-inverse" type="submit" aria-hidden="true">Promote to Admin</button>
 		</form>
 		<hr>
@@ -51,9 +52,33 @@
 				<span class="add-on"><i class="icon icon-user"> </i></span>
 				<div class="input-wrapper"><input type="text" name="username" autocomplete="off" placeholder="Username"></div>
 			</div>
-			<input type="hidden" name="redir" value="admin">
+			<input type="hidden" name="redir" value="dashboard">
 			<button class="btn" type="submit" aria-hidden="true">Remove Admin</button>
 		</form>
 	</div>
+
+	<h4>Recent Reports</h4>
+	<ul class="report-list">
+		{{range $row := .Obj.RecentReports}}<li>
+			<div class="report-buttons">
+				<a title="View Paste" href="/paste/{{$row.PasteID}}" target="_blank" class="btn btn-link"><i class="icon-file-text"></i></a>
+				<form action="/admin/paste/{{$row.PasteID}}/delete?redir=reports" method="post">
+					<button title="Delete Paste" type="submit" class="btn btn-link"><i class="icon-trash"></i></button>
+				</form>
+				<form action="/admin/paste/{{$row.PasteID}}/clear_report" method="post">
+					<button title="Clear Report" type="submit" class="btn btn-link"><i class="icon-cancel"></i></button>
+				</form>
+			</div>
+			<div class="report-contents">
+				<span class="paste-title">
+					<strong>{{$row.PasteID}}</strong>
+					<span class="paste-subtitle">{{range $reason := $row.Reasons}}{{$reason}} {{end}}</span>
+				</span>
+			</div>
+			<div class="clearfix"></div>
+		</li>{{else}}
+		<div class="well">No reports.</div>
+		{{end}}
+	</ul>
 </div>
 {{end}}

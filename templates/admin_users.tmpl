@@ -1,0 +1,60 @@
+{{define "admin_users_title"}}Administration (Users){{end}}
+{{define "admin_users_body"}}
+<div class="paste-toolbox">
+	{{template "home-button"}}
+	<span class="paste-title">
+		<strong>Administration (Users)</strong>
+	</span>
+</div>
+<div class="content admin-content">
+	<div class="well admin-links">
+		<a class="btn" href="/admin">Admin Home</a>
+		<a class="btn" href="/admin/dashboard">Dashboard</a>
+		<a class="btn" href="/admin/reports">Reports</a>
+		<a class="btn" href="/admin/pastes">Pastes</a>
+	</div>
+
+	<form class="well admin-filter-row" method="GET" action="/admin/users">
+		<div class="input-prepend phone-expand">
+			<span class="add-on"><i class="icon icon-search"></i></span>
+			<div class="input-wrapper"><input type="text" name="q" value="{{.Obj.Query}}" placeholder="Search users"></div>
+		</div>
+		<label class="checkbox">
+			<input type="checkbox" name="admin" value="1" {{if .Obj.AdminOnly}}checked{{end}}> Admin only
+		</label>
+		<button class="btn btn-inverse" type="submit">Apply</button>
+	</form>
+
+	<ul class="paste-list">
+		{{range $row := .Obj.Users}}<li>
+		<div class="report-buttons">
+			{{if $row.IsAdmin}}
+			<form action="/admin/demote" method="post">
+				<input type="hidden" name="username" value="{{$row.Name}}">
+				<input type="hidden" name="redir" value="users">
+				<button title="Remove Admin" type="submit" class="btn btn-link"><i class="icon-cancel"></i></button>
+			</form>
+			{{else}}
+			<form action="/admin/promote" method="post">
+				<input type="hidden" name="username" value="{{$row.Name}}">
+				<input type="hidden" name="redir" value="users">
+				<button title="Promote to Admin" type="submit" class="btn btn-link"><i class="icon-upload-cloud"></i></button>
+			</form>
+			{{end}}
+		</div>
+		<div class="report-contents">
+			<span class="paste-title">
+				<strong>{{$row.Name}}</strong>
+				<span class="paste-subtitle">
+					{{if $row.IsAdmin}}admin{{else}}user{{end}}
+					{{if $row.IsPersona}} | persona{{end}}
+				</span>
+			</span>
+		</div>
+		<div class="clearfix"></div>
+		</li>{{else}}
+		<div class="well">No users found.</div>
+		{{end}}
+	</ul>
+</div>
+{{end}}

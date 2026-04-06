@@ -1,0 +1,53 @@
+{{define "admin_pastes_title"}}Administration (Pastes){{end}}
+{{define "admin_pastes_body"}}
+<div class="paste-toolbox">
+	{{template "home-button"}}
+	<span class="paste-title">
+		<strong>Administration (Pastes)</strong>
+	</span>
+</div>
+<div class="content admin-content">
+	<div class="well admin-links">
+		<a class="btn" href="/admin">Admin Home</a>
+		<a class="btn" href="/admin/dashboard">Dashboard</a>
+		<a class="btn" href="/admin/reports">Reports</a>
+		<a class="btn" href="/admin/users">Users</a>
+	</div>
+
+	<form class="well admin-filter-row" method="GET" action="/admin/pastes">
+		<div class="input-prepend phone-expand">
+			<span class="add-on"><i class="icon icon-search"></i></span>
+			<div class="input-wrapper"><input type="text" name="q" value="{{.Obj.Query}}" placeholder="Search pastes"></div>
+		</div>
+		<label class="checkbox">
+			<input type="checkbox" name="reported" value="1" {{if .Obj.ReportedOnly}}checked{{end}}> Reported only
+		</label>
+		<button class="btn btn-inverse" type="submit">Apply</button>
+	</form>
+
+	<ul class="paste-list">
+		{{range $row := .Obj.Pastes}}<li>
+		<div class="report-buttons">
+			<a title="View Paste" href="/paste/{{$row.PasteID}}" target="_blank" class="btn btn-link"><i class="icon-file-text"></i></a>
+			<form action="/admin/paste/{{$row.PasteID}}/delete?redir=pastes" method="post">
+				<button title="Delete Paste" type="submit" class="btn btn-link"><i class="icon-trash"></i></button>
+			</form>
+		</div>
+		<div class="report-contents">
+			<span class="paste-title">
+				<strong>{{$row.PasteID}}</strong>
+				<span class="paste-subtitle">
+					{{$row.Language}} | {{$row.LastModified.Format "2006-01-02 15:04:05 MST"}}
+					{{if $row.IsEncrypted}} | encrypted{{end}}
+					{{if $row.ExpiresAt}} | expires {{$row.ExpiresAt.Format "2006-01-02 15:04:05 MST"}}{{end}}
+					{{if gt $row.ReportCount 0}} | reports {{$row.ReportCount}} {{range $reason := $row.ReportReasons}}{{$reason}} {{end}}{{end}}
+				</span>
+			</span>
+		</div>
+		<div class="clearfix"></div>
+		</li>{{else}}
+		<div class="well">No pastes found.</div>
+		{{end}}
+	</ul>
+</div>
+{{end}}

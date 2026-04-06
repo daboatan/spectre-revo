@@ -6,18 +6,25 @@
 		<strong>Administration (Reports)</strong>
 	</span>
 </div>
+<div class="content admin-content">
+<div class="well admin-links">
+	<a class="btn" href="/admin">Admin Home</a>
+	<a class="btn" href="/admin/dashboard">Dashboard</a>
+	<a class="btn" href="/admin/pastes">Pastes</a>
+	<a class="btn" href="/admin/users">Users</a>
+</div>
 <ul class="report-list">
-{{range $pasteID, $reportData := .Obj}}<li>
+{{range $row := .Obj.Reports}}<li>
 	<div class="report-buttons">
-		<a title="View Paste" href="/paste/{{$pasteID}}" target="_blank" class="btn btn-link"><i class="icon-file-text"></i></a>
+		<a title="View Paste" href="/paste/{{$row.PasteID}}" target="_blank" class="btn btn-link"><i class="icon-file-text"></i></a>
 
-		<form action="/admin/paste/{{$pasteID}}/delete?redir=reports" method="post">
+		<form action="/admin/paste/{{$row.PasteID}}/delete?redir=reports" method="post">
 			<button title="Delete Paste" type="submit" class="btn btn-link">
 				<i class="icon-trash"></i>
 			</button>
 		</form>
 
-		<form action="/admin/paste/{{$pasteID}}/clear_report" method="post">
+		<form action="/admin/paste/{{$row.PasteID}}/clear_report" method="post">
 			<button title="Clear Report" type="submit" class="btn btn-link">
 				<i class="icon-cancel"></i>
 			</button>
@@ -26,15 +33,15 @@
 
 	<div class="report-contents">
 		<span class="paste-title">
-		<strong>{{$pasteID}}</strong>
+		<strong>{{$row.PasteID}}</strong>
 		<span class="paste-subtitle">
-		{{range $reportType, $count := $reportData}}
-			{{$reportType}} x{{$count}}
+		{{range $reason := $row.Reasons}}
+			{{$reason}}
 		{{end}}
 		</span>
 		</span>
 		<div class="well paste-miniature">
-			<div class="code">{{with pasteFromID $pasteID}}{{truncatedPasteBody . 5}}{{end}}</div>
+			<div class="code">{{$row.Preview}}</div>
 		</div>
 	</div>
 	<div class="clearfix"></div>
@@ -42,4 +49,5 @@
 <div class="well">No reports!</div>
 {{end}}
 </ul>
+</div>
 {{end}}

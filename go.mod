@@ -1,4 +1,4 @@
-module github.com/borrougagnou/spectre-updated
+module github.com/daboatan/spectre-revo
 
 go 1.24
 

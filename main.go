@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/DHowett/gotimeout"
-	"github.com/borrougagnou/spectre-updated/account"
+	"github.com/daboatan/spectre-revo/account"
 	"github.com/golang/glog"
 	"github.com/golang/groupcache/lru"
 	"github.com/gorilla/mux"
@@ -389,6 +389,8 @@ func pasteDelete(o Model, w http.ResponseWriter, r *http.Request) {
 	redir := r.FormValue("redir")
 	if redir == "reports" {
 		w.Header().Set("Location", "/admin/reports")
+	} else if redir == "pastes" {
+		w.Header().Set("Location", "/admin/pastes")
 	} else {
 		w.Header().Set("Location", "/")
 	}
@@ -1000,13 +1002,14 @@ func main() {
 		Path("/{id}/authenticate").
 		Handler(RenderPageHandler("paste_authenticate_disallowed"))
 
-	router.Methods("GET", "HEAD").Path("/admin").Handler(requiresUserPermission("admin", RenderPageHandler("admin_home")))
-
-	router.Methods("GET", "HEAD").Path("/admin/reports").Handler(requiresUserPermission("admin", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		RenderPage(w, r, "admin_reports", reportStore.Snapshot())
-	})))
+	router.Methods("GET", "HEAD").Path("/admin").Handler(requiresUserPermission("admin", http.HandlerFunc(adminHomeHandler)))
+	router.Methods("GET", "HEAD").Path("/admin/dashboard").Handler(requiresUserPermission("admin", http.HandlerFunc(adminDashboardHandler)))
+	router.Methods("GET", "HEAD").Path("/admin/reports").Handler(requiresUserPermission("admin", http.HandlerFunc(adminReportsHandler)))
+	router.Methods("GET", "HEAD").Path("/admin/pastes").Handler(requiresUserPermission("admin", http.HandlerFunc(adminPastesHandler)))
+	router.Methods("GET", "HEAD").Path("/admin/users").Handler(requiresUserPermission("admin", http.HandlerFunc(adminUsersHandler)))
 
 	router.Methods("POST").Path("/admin/promote").Handler(requiresUserPermission("admin", http.HandlerFunc(adminPromoteHandler)))
+	router.Methods("POST").Path("/admin/demote").Handler(requiresUserPermission("admin", http.HandlerFunc(adminDemoteHandler)))
 
 	router.Methods("POST").
 		Path("/admin/paste/{id}/delete").

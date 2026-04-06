@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/borrougagnou/spectre-updated/account"
+	"github.com/daboatan/spectre-revo/account"
 	"github.com/golang/glog"
 	"github.com/golang/groupcache/lru"
 	"github.com/gorilla/mux"
@@ -251,7 +251,7 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 			reply.ExtraData["username"] = user.Name
 		}
 		clientSession.Values["account2"] = user.Name
-		
+
 		if err := clientSession.Save(r, w); err != nil {
 			glog.Errorf("Error saving client session for IP %s: %v", SourceIPForRequest(r), err)
 		}
@@ -464,7 +464,22 @@ func (c *PromoteFirstUserToAdminStore) Create(name string) *account.User {
 }
 
 func adminPromoteHandler(w http.ResponseWriter, r *http.Request) {
-	username := r.FormValue("username")
+	username := strings.TrimSpace(r.FormValue("username"))
+	redirectTo := "/admin"
+	switch r.FormValue("redir") {
+	case "users":
+		redirectTo = "/admin/users"
+	case "dashboard":
+		redirectTo = "/admin/dashboard"
+	}
+
+	if username == "" {
+		SetFlash(w, "error", "Username is required.")
+		w.Header().Set("Location", redirectTo)
+		w.WriteHeader(http.StatusSeeOther)
+		return
+	}
+
 	user := userStore.Get(username)
 	if user != nil {
 		perms, ok := user.Values["user.permissions"].(PastePermission)
@@ -478,7 +493,56 @@ func adminPromoteHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		SetFlash(w, "error", "Couldn't find "+username+" to promote.")
 	}
-	w.Header().Set("Location", "/admin")
+	w.Header().Set("Location", redirectTo)
+	w.WriteHeader(http.StatusSeeOther)
+}
+
+func adminDemoteHandler(w http.ResponseWriter, r *http.Request) {
+	username := strings.TrimSpace(r.FormValue("username"))
+	redirectTo := "/admin/users"
+	switch r.FormValue("redir") {
+	case "admin":
+		redirectTo = "/admin"
+	case "dashboard":
+		redirectTo = "/admin/dashboard"
+	}
+
+	if username == "" {
+		SetFlash(w, "error", "Username is required.")
+		w.Header().Set("Location", redirectTo)
+		w.WriteHeader(http.StatusSeeOther)
+		return
+	}
+
+	requestUser := GetUser(r)
+	if requestUser != nil && requestUser.Name == username {
+		SetFlash(w, "error", "You cannot remove your own admin status.")
+		w.Header().Set("Location", redirectTo)
+		w.WriteHeader(http.StatusSeeOther)
+		return
+	}
+
+	user := userStore.Get(username)
+	if user == nil {
+		SetFlash(w, "error", "Couldn't find "+username+" to demote.")
+		w.Header().Set("Location", redirectTo)
+		w.WriteHeader(http.StatusSeeOther)
+		return
+	}
+
+	perms, ok := user.Values["user.permissions"].(PastePermission)
+	if !ok || !perms["admin"] {
+		SetFlash(w, "error", username+" is not an admin.")
+		w.Header().Set("Location", redirectTo)
+		w.WriteHeader(http.StatusSeeOther)
+		return
+	}
+
+	delete(perms, "admin")
+	user.Values["user.permissions"] = perms
+	user.Save()
+	SetFlash(w, "success", "Removed admin status from "+username+".")
+	w.Header().Set("Location", redirectTo)
 	w.WriteHeader(http.StatusSeeOther)
 }
 

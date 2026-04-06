@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/borrougagnou/spectre-updated/account"
+	"github.com/daboatan/spectre-revo/account"
 	"github.com/golang/glog"
 )
 

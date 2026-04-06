@@ -411,6 +411,71 @@ span.paste-title {
 	}
 }
 
+.admin-content {
+	@media @media-phone {
+		margin: 0;
+		padding: 8px;
+	}
+}
+
+.admin-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 10px;
+
+	.admin-card {
+		flex: 1 1 150px;
+		min-width: 140px;
+		margin: 0;
+		padding: 10px;
+	}
+
+	.admin-kpi-label {
+		font-size: @paste-subtitle-font-size;
+		color: @paste-subtitle-color;
+		text-transform: uppercase;
+	}
+
+	.admin-kpi-value {
+		font-size: 18pt;
+		line-height: 1.1em;
+		color: @paste-title-color;
+	}
+}
+
+.admin-links {
+	margin: 0 0 10px 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	.btn {
+		min-width: 110px;
+	}
+}
+
+.admin-filter-row {
+	margin: 0 0 10px 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+
+	.input-prepend {
+		margin: 0;
+		flex: 1 1 280px;
+	}
+
+	.checkbox {
+		margin: 0;
+		line-height: 32px;
+	}
+
+	.btn {
+		min-width: 90px;
+	}
+}
+
 .well {
 	margin: 10px;
 	min-height: 20px;

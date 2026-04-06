@@ -38,3 +38,7 @@ data/*
 pastes/*
 tmp/
 .env
+
+# LOCAL AI/AGENT ARTIFACTS
+.codex
+CLAUDE.md

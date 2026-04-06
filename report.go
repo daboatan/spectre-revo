@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -15,9 +16,16 @@ type ReportInfo map[string]int
 type ReportStore struct {
 	Reports  map[PasteID]ReportInfo
 	filename string
+	mu       sync.RWMutex
 }
 
 func (r *ReportStore) Save() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.saveLocked()
+}
+
+func (r *ReportStore) saveLocked() error {
 	asideFilename := r.filename + ".atomic"
 	file, err := os.Create(asideFilename)
 	if err != nil {
@@ -37,6 +45,9 @@ func (r *ReportStore) Save() error {
 }
 
 func (r *ReportStore) Add(id PasteID, kind string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	currentReportsForPaste, ok := r.Reports[id]
 
 	if !ok {
@@ -45,13 +56,31 @@ func (r *ReportStore) Add(id PasteID, kind string) {
 	}
 
 	currentReportsForPaste[kind] = currentReportsForPaste[kind] + 1
-	r.Save()
+	r.saveLocked()
 }
 
 func (r *ReportStore) Delete(p PasteID) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	delete(r.Reports, p)
 	glog.Info(p, " deleted from report history.")
-	r.Save()
+	r.saveLocked()
+}
+
+func (r *ReportStore) Snapshot() map[PasteID]ReportInfo {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	reports := make(map[PasteID]ReportInfo, len(r.Reports))
+	for id, info := range r.Reports {
+		clone := make(ReportInfo, len(info))
+		for kind, count := range info {
+			clone[kind] = count
+		}
+		reports[id] = clone
+	}
+	return reports
 }
 
 func LoadReportStore(filename string) *ReportStore {

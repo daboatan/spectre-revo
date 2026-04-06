@@ -45,12 +45,24 @@ type PasteAccessDeniedError struct {
 	ID     PasteID
 }
 
+type UserPermissionDeniedError struct {
+	permission string
+}
+
 func (e PasteAccessDeniedError) Error() string {
 	return "You're not allowed to " + e.action + " paste " + e.ID.String()
 }
 
+func (e UserPermissionDeniedError) Error() string {
+	return "Missing required permission: " + e.permission
+}
+
 // Make the various errors we can throw conform to HTTPError (here vs. the generic type file)
 func (e PasteAccessDeniedError) StatusCode() int {
+	return http.StatusForbidden
+}
+
+func (e UserPermissionDeniedError) StatusCode() int {
 	return http.StatusForbidden
 }
 
@@ -221,7 +233,7 @@ func requiresUserPermission(permission string, handler http.Handler) http.Handle
 		}
 
 		healthServer.IncrementMetric("permission." + permission + ".failed")
-		panic(fmt.Errorf("You are not allowed to be here. >:|"))
+		panic(UserPermissionDeniedError{permission: permission})
 	})
 }
 
@@ -988,10 +1000,10 @@ func main() {
 		Path("/{id}/authenticate").
 		Handler(RenderPageHandler("paste_authenticate_disallowed"))
 
-	router.Path("/admin").Handler(requiresUserPermission("admin", RenderPageHandler("admin_home")))
+	router.Methods("GET", "HEAD").Path("/admin").Handler(requiresUserPermission("admin", RenderPageHandler("admin_home")))
 
-	router.Path("/admin/reports").Handler(requiresUserPermission("admin", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		RenderPage(w, r, "admin_reports", reportStore.Reports)
+	router.Methods("GET", "HEAD").Path("/admin/reports").Handler(requiresUserPermission("admin", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		RenderPage(w, r, "admin_reports", reportStore.Snapshot())
 	})))
 
 	router.Methods("POST").Path("/admin/promote").Handler(requiresUserPermission("admin", http.HandlerFunc(adminPromoteHandler)))

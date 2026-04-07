@@ -9,7 +9,6 @@
 <div class="content admin-content">
 	<div class="well admin-links">
 		<a class="btn" href="/admin">Admin Home</a>
-		<a class="btn" href="/admin/dashboard">Dashboard</a>
 		<a class="btn" href="/admin/reports">Reports</a>
 		<a class="btn" href="/admin/pastes">Pastes</a>
 	</div>
@@ -25,36 +24,45 @@
 		<button class="btn btn-inverse" type="submit">Apply</button>
 	</form>
 
-	<ul class="paste-list">
-		{{range $row := .Obj.Users}}<li>
-		<div class="report-buttons">
-			{{if $row.IsAdmin}}
-			<form action="/admin/demote" method="post">
-				<input type="hidden" name="username" value="{{$row.Name}}">
-				<input type="hidden" name="redir" value="users">
-				<button title="Remove Admin" type="submit" class="btn btn-link"><i class="icon-cancel"></i></button>
-			</form>
-			{{else}}
-			<form action="/admin/promote" method="post">
-				<input type="hidden" name="username" value="{{$row.Name}}">
-				<input type="hidden" name="redir" value="users">
-				<button title="Promote to Admin" type="submit" class="btn btn-link"><i class="icon-upload-cloud"></i></button>
-			</form>
-			{{end}}
-		</div>
-		<div class="report-contents">
-			<span class="paste-title">
-				<strong>{{$row.Name}}</strong>
-				<span class="paste-subtitle">
-					{{if $row.IsAdmin}}admin{{else}}user{{end}}
-					{{if $row.IsPersona}} | persona{{end}}
-				</span>
-			</span>
-		</div>
-		<div class="clearfix"></div>
-		</li>{{else}}
-		<div class="well">No users found.</div>
-		{{end}}
-	</ul>
+	{{if .Obj.Users}}
+	<div class="well">
+		<table class="admin-users-table">
+			<thead>
+				<tr>
+					<th class="admin-user-name">User</th>
+					<th class="admin-user-role">Role</th>
+					<th class="admin-user-persona">Persona</th>
+					<th class="admin-user-action">Action</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range $row := .Obj.Users}}
+				<tr>
+					<td class="admin-user-name"><strong>{{$row.Name}}</strong></td>
+					<td class="admin-user-role">{{if $row.IsAdmin}}admin{{else}}user{{end}}</td>
+					<td class="admin-user-persona">{{if $row.IsPersona}}yes{{else}}no{{end}}</td>
+					<td class="admin-user-action">
+						{{if $row.IsAdmin}}
+						<form action="/admin/demote" method="post">
+							<input type="hidden" name="username" value="{{$row.Name}}">
+							<input type="hidden" name="redir" value="users">
+							<button type="submit" class="btn btn-link">Remove admin</button>
+						</form>
+						{{else}}
+						<form action="/admin/promote" method="post">
+							<input type="hidden" name="username" value="{{$row.Name}}">
+							<input type="hidden" name="redir" value="users">
+							<button type="submit" class="btn btn-link">Promote admin</button>
+						</form>
+						{{end}}
+					</td>
+				</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+	{{else}}
+	<div class="well">No users found.</div>
+	{{end}}
 </div>
 {{end}}

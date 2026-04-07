@@ -46,10 +46,6 @@ type AdminUserRow struct {
 }
 
 type AdminHomeView struct {
-	Dashboard AdminDashboardSnapshot
-}
-
-type AdminDashboardView struct {
 	Dashboard     AdminDashboardSnapshot
 	RecentReports []AdminReportRow
 }
@@ -346,19 +342,13 @@ func buildAdminUserRows(query string, adminOnly bool) []AdminUserRow {
 
 func adminHomeHandler(w http.ResponseWriter, r *http.Request) {
 	RenderPage(w, r, "admin_home", AdminHomeView{
-		Dashboard: buildAdminDashboardSnapshot(),
+		Dashboard:     buildAdminDashboardSnapshot(),
+		RecentReports: buildRecentAdminReports(5),
 	})
 }
 
-func adminDashboardHandler(w http.ResponseWriter, r *http.Request) {
-	reports := buildAdminReportsRows()
-	if len(reports) > 5 {
-		reports = reports[:5]
-	}
-	RenderPage(w, r, "admin_dashboard", AdminDashboardView{
-		Dashboard:     buildAdminDashboardSnapshot(),
-		RecentReports: reports,
-	})
+func adminDashboardRedirectHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/admin", http.StatusFound)
 }
 
 func adminReportsHandler(w http.ResponseWriter, r *http.Request) {
@@ -388,4 +378,12 @@ func adminUsersHandler(w http.ResponseWriter, r *http.Request) {
 		Query:     query,
 		AdminOnly: adminOnly,
 	})
+}
+
+func buildRecentAdminReports(limit int) []AdminReportRow {
+	reports := buildAdminReportsRows()
+	if limit <= 0 || len(reports) <= limit {
+		return reports
+	}
+	return reports[:limit]
 }

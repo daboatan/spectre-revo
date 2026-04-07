@@ -1003,7 +1003,7 @@ func main() {
 		Handler(RenderPageHandler("paste_authenticate_disallowed"))
 
 	router.Methods("GET", "HEAD").Path("/admin").Handler(requiresUserPermission("admin", http.HandlerFunc(adminHomeHandler)))
-	router.Methods("GET", "HEAD").Path("/admin/dashboard").Handler(requiresUserPermission("admin", http.HandlerFunc(adminDashboardHandler)))
+	router.Methods("GET", "HEAD").Path("/admin/dashboard").Handler(requiresUserPermission("admin", http.HandlerFunc(adminDashboardRedirectHandler)))
 	router.Methods("GET", "HEAD").Path("/admin/reports").Handler(requiresUserPermission("admin", http.HandlerFunc(adminReportsHandler)))
 	router.Methods("GET", "HEAD").Path("/admin/pastes").Handler(requiresUserPermission("admin", http.HandlerFunc(adminPastesHandler)))
 	router.Methods("GET", "HEAD").Path("/admin/users").Handler(requiresUserPermission("admin", http.HandlerFunc(adminUsersHandler)))

@@ -9,7 +9,6 @@
 <div class="content admin-content">
 	<div class="well admin-links">
 		<a class="btn" href="/admin">Admin Home</a>
-		<a class="btn" href="/admin/dashboard">Dashboard</a>
 		<a class="btn" href="/admin/reports">Reports</a>
 		<a class="btn" href="/admin/users">Users</a>
 	</div>
@@ -25,29 +24,51 @@
 		<button class="btn btn-inverse" type="submit">Apply</button>
 	</form>
 
-	<ul class="paste-list">
-		{{range $row := .Obj.Pastes}}<li>
-		<div class="report-buttons">
-			<a title="View Paste" href="/paste/{{$row.PasteID}}" target="_blank" class="btn btn-link"><i class="icon-file-text"></i></a>
-			<form action="/admin/paste/{{$row.PasteID}}/delete?redir=pastes" method="post">
-				<button title="Delete Paste" type="submit" class="btn btn-link"><i class="icon-trash"></i></button>
-			</form>
-		</div>
-		<div class="report-contents">
-			<span class="paste-title">
-				<strong>{{$row.PasteID}}</strong>
-				<span class="paste-subtitle">
-					{{$row.Language}} | {{$row.LastModified.Format "2006-01-02 15:04:05 MST"}}
-					{{if $row.IsEncrypted}} | encrypted{{end}}
-					{{if $row.ExpiresAt}} | expires {{$row.ExpiresAt.Format "2006-01-02 15:04:05 MST"}}{{end}}
-					{{if gt $row.ReportCount 0}} | reports {{$row.ReportCount}} {{range $reason := $row.ReportReasons}}{{$reason}} {{end}}{{end}}
-				</span>
-			</span>
-		</div>
-		<div class="clearfix"></div>
-		</li>{{else}}
-		<div class="well">No pastes found.</div>
-		{{end}}
-	</ul>
+	{{if .Obj.Pastes}}
+	<div class="well">
+		<table class="admin-pastes-table">
+			<thead>
+				<tr>
+					<th class="admin-paste-id">Paste</th>
+					<th class="admin-paste-details">Details</th>
+					<th class="admin-paste-reports">Reports</th>
+					<th class="admin-paste-action">Action</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range $row := .Obj.Pastes}}
+				<tr>
+					<td class="admin-paste-id">
+						<strong>{{$row.PasteID}}</strong>
+					</td>
+					<td class="admin-paste-details">
+						<span class="paste-subtitle">
+							{{$row.Language}} | {{$row.LastModified.Format "2006-01-02 15:04:05 MST"}}
+							{{if $row.IsEncrypted}} | encrypted{{end}}
+							{{if $row.ExpiresAt}} | expires {{$row.ExpiresAt.Format "2006-01-02 15:04:05 MST"}}{{end}}
+						</span>
+					</td>
+					<td class="admin-paste-reports">
+						{{if gt $row.ReportCount 0}}
+							{{$row.ReportCount}}
+							{{range $reason := $row.ReportReasons}}{{$reason}} {{end}}
+						{{else}}
+							none
+						{{end}}
+					</td>
+					<td class="admin-paste-action">
+						<a title="View Paste" href="/paste/{{$row.PasteID}}" target="_blank" class="btn btn-link"><i class="icon-file-text"></i></a>
+						<form action="/admin/paste/{{$row.PasteID}}/delete?redir=pastes" method="post">
+							<button title="Delete Paste" type="submit" class="btn btn-link"><i class="icon-trash"></i></button>
+						</form>
+					</td>
+				</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+	{{else}}
+	<div class="well">No pastes found.</div>
+	{{end}}
 </div>
 {{end}}

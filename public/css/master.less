@@ -476,6 +476,135 @@ span.paste-title {
 	}
 }
 
+.admin-users-table {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+
+	th,
+	td {
+		text-align: left;
+		padding: 8px 10px;
+		border-top: 1px solid @minor-highlight-border;
+		vertical-align: middle;
+		word-break: break-word;
+	}
+
+	thead th {
+		border-top: none;
+		color: @paste-subtitle-color;
+		text-transform: uppercase;
+		font-size: @paste-subtitle-font-size;
+	}
+
+	.admin-user-name {
+		width: 68%;
+	}
+
+	.admin-user-role {
+		width: 8%;
+	}
+
+	.admin-user-persona {
+		width: 8%;
+	}
+
+	.admin-user-action {
+		width: 16%;
+		white-space: nowrap;
+
+		form {
+			display: inline-block;
+			margin: 0;
+		}
+
+		.btn {
+			padding: 4px 8px;
+		}
+	}
+
+	@media @media-phone {
+		table-layout: auto;
+
+		th,
+		td {
+			padding: 6px 4px;
+			font-size: @paste-subtitle-font-size;
+		}
+
+		.admin-user-action {
+			width: auto;
+			white-space: normal;
+		}
+	}
+}
+
+.admin-pastes-table {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+
+	th,
+	td {
+		text-align: left;
+		padding: 8px 10px;
+		border-top: 1px solid @minor-highlight-border;
+		vertical-align: middle;
+		word-break: break-word;
+	}
+
+	thead th {
+		border-top: none;
+		color: @paste-subtitle-color;
+		text-transform: uppercase;
+		font-size: @paste-subtitle-font-size;
+	}
+
+	.admin-paste-id {
+		width: 20%;
+	}
+
+	.admin-paste-details {
+		width: 43%;
+	}
+
+	.admin-paste-reports {
+		width: 25%;
+	}
+
+	.admin-paste-action {
+		width: 12%;
+		white-space: nowrap;
+
+		form {
+			display: inline-block;
+			margin: 0;
+		}
+
+		.btn {
+			padding: 4px 8px;
+		}
+	}
+
+	@media @media-phone {
+		table-layout: auto;
+
+		th,
+		td {
+			padding: 6px 4px;
+			font-size: @paste-subtitle-font-size;
+		}
+
+		.admin-paste-action {
+			width: auto;
+			white-space: normal;
+		}
+	}
+}
+body > div.content.admin-content > div.well.admin-links,
+body > div.content.admin-content > div:nth-child(3),
+body > div.content.admin-content > ul.report-list {margin: unset}
+
 .well {
 	margin: 10px;
 	min-height: 20px;

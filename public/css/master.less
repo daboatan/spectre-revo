@@ -838,3 +838,90 @@ form {
 		margin-bottom: 0;
 	}
 }
+
+#optionsModal {
+	width: 760px;
+	margin-left: -380px;
+}
+
+#optionsModal .modal-body {
+	max-height: 420px;
+	overflow-y: auto;
+}
+
+#optionsModal .options-modal-layout {
+	display: -webkit-box;
+	display: -ms-flexbox;
+	display: flex;
+	-webkit-box-align: start;
+	-ms-flex-align: start;
+	align-items: center;
+}
+
+#optionsModal .options-modal-layout > .options-modal-left,
+#optionsModal .options-modal-layout > .options-modal-right {
+	float: none;
+	margin-left: 0;
+	min-height: 1px;
+}
+
+#optionsModal .options-modal-layout > .options-modal-left {
+	width: 75%;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	padding-right: 16px;
+}
+
+#optionsModal .options-modal-layout > .options-modal-right {
+	width: 25%;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	padding-left: 16px;
+}
+
+#optionsModal .options-gif-box {
+	text-align: center;
+}
+
+#optionsModal .options-gif-box img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+	#optionsModal {
+		width: auto;
+		left: 20px;
+		right: 20px;
+		margin-left: 0;
+	}
+
+	#optionsModal .options-modal-layout {
+		display: block;
+	}
+
+	#optionsModal .options-modal-layout > .options-modal-left,
+	#optionsModal .options-modal-layout > .options-modal-right {
+		width: 100%;
+		padding-right: 0;
+	}
+
+	#optionsModal .options-modal-layout > .options-modal-right {
+		border-left: 0;
+		border-top: 1px solid #ddd;
+		padding-left: 0;
+		padding-top: 16px;
+		margin-top: 16px;
+	}
+
+	#optionsModal .options-gif-box img {
+		max-width: 100%;
+		max-height: 180px;
+		width: auto;
+		height: auto;
+	}
+}

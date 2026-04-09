@@ -94,18 +94,27 @@ It looks like you've stumbled upon a page (<strong>{{.Page}}</strong>) that shou
 		<h3>Options</h3>
 	</div>
 	<div class="modal-body">
-		<h4><i class="icon icon-remember"> </i>Persistence</h4>
-		<label class="checkbox">
-			<input name="saveLanguage" type="checkbox" data-gb-key="saveLanguage"> Remember my last-used language
-		</label>
-		<label class="checkbox">
-			<input name="saveExpiration" type="checkbox" data-gb-key="saveExpiration"> Remember my last-used expiration
-		</label>
-		<h4><i class="icon icon-user"> </i>Account</h4>
-		{{partial . "login_logout"}}
-		<h4><i class="icon icon-wrench"> </i>Miscellanea</h4>
-		<p><a target="_blank" href="/about">About {{brand}}</a> <small>(in a new window)</small>
-		<br><a href="/session">My Pastes</a></p>
+		<div class="row-fluid options-modal-layout">
+			<div class="span9 options-modal-left">
+				<h4><i class="icon icon-remember"> </i>Persistence</h4>
+				<label class="checkbox">
+					<input name="saveLanguage" type="checkbox" data-gb-key="saveLanguage"> Remember my last-used language
+				</label>
+				<label class="checkbox">
+					<input name="saveExpiration" type="checkbox" data-gb-key="saveExpiration"> Remember my last-used expiration
+				</label>
+				<h4><i class="icon icon-user"> </i>Account</h4>
+				{{partial . "login_logout"}}
+				<h4><i class="icon icon-wrench"> </i>Miscellanea</h4>
+				<p><a target="_blank" href="/about">About {{brand}}</a> <small>(in a new window)</small>
+				<br><a href="/session">My Pastes</a></p>
+			</div>
+			<div class="span3 options-modal-right">
+				<div class="options-gif-box">
+					<img src="daboatan.gif" alt="Options preview">
+				</div>
+			</div>
+		</div>
 	</div>
 	<div class="modal-footer">
 		<button data-dismiss="modal" class="btn" aria-hidden="true">Okay</button>

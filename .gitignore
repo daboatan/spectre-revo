@@ -42,3 +42,5 @@ tmp/
 # LOCAL AI/AGENT ARTIFACTS
 .codex
 CLAUDE.md
+.playwright-mcp/
+install.sh_old

@@ -202,7 +202,18 @@ $(function() {
 	"use strict";
 
 	var pasteForm = $("#pasteForm");
-	var code = $("#code"), codeeditor = $("#code-editor");
+	var code = $("#code"), codeeditor = $("#code-editor-source");
+	var editorValue = function() {
+		if(window.SpectreCodeEditor) return window.SpectreCodeEditor.value();
+		return codeeditor.val();
+	};
+	var focusEditor = function() {
+		if(window.SpectreCodeEditor) {
+			window.SpectreCodeEditor.focus();
+		} else {
+			codeeditor.focus();
+		}
+	};
 	if(pasteForm.length > 0) {
 		// Initialize the form.
 		var langbox = pasteForm.find("#langbox");
@@ -245,7 +256,7 @@ $(function() {
 			});
 		}
 		pasteForm.on('submit', function() {
-			if((codeeditor.val().match(/[^\s]/)||[]).length !== 0) {
+			if((editorValue().match(/[^\s]/)||[]).length !== 0) {
 				if(context === "new") {
 					if(Spectre.getPreference("saveExpiration", "false") === "true") {
 						Spectre.setDefaultExpiration(pasteForm.find("input[name='expire']").val());
@@ -266,7 +277,7 @@ $(function() {
 		});
 		$("#editable-paste-title").keydown(function(e) {
 			if(e.keyCode === 13) {
-				codeeditor.focus();
+				focusEditor();
 				return false;
 			}
 			return true;
@@ -437,6 +448,11 @@ $(function() {
 			var lineNumberFrame;
 			var updateEditorLineNumbers = function() {
 				lineNumberFrame = undefined;
+				if(document.body.classList.contains("codemirror-active")) {
+					lineNumberTrough.addClass("is-hidden").empty();
+					$(".textarea-height-wrapper").css("left", 0);
+					return;
+				}
 				var lines = countEditorLines(codeeditor[0].value);
 				if(lines > maxEditorLineNumbers) {
 					lineNumberTrough.addClass("is-hidden").empty().removeData("lines");
@@ -447,7 +463,7 @@ $(function() {
 					$(".textarea-height-wrapper").css("left", lineNumberTrough.outerWidth());
 				});
 			};
-			codeeditor.on("input propertychange", function() {
+			codeeditor.on("input propertychange spectre:editor-change", function() {
 				if(typeof lineNumberFrame === "undefined") {
 					lineNumberFrame = window.requestAnimationFrame(updateEditorLineNumbers);
 				}
@@ -474,7 +490,7 @@ $(function() {
 			});
 
 			var changed = false;
-			codeeditor.on("input propertychange", function() {
+			codeeditor.on("input propertychange spectre:editor-change", function() {
 				changed = true;
 			});
 

@@ -56,7 +56,10 @@ go run . -v=2 -logtostderr
 ### Asset Management
 The project uses **Grunt** to manage frontend assets.
 - `grunt`: Builds and minifies CSS/JS for production.
+- `npm run build:editor`: Builds the CodeMirror 6 editor and its dynamically loaded language chunks.
 - `less.js`: Is used in development mode to compile styles in-browser.
+
+Run `npm run build:editor` after changing `public/js/editor.js` or updating CodeMirror dependencies. The generated files under `public/js/codemirror/` are runtime assets and must be included when deploying `public/`.
 
 ## Configuration
 

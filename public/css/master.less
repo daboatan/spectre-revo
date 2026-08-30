@@ -258,6 +258,49 @@ textarea.code {
 		height: 100%;
 		.box-sizing(border-box);
 	}
+
+	#code-editor {
+		display: none;
+		height: 100%;
+	}
+
+	#editor-status {
+		display: none;
+		position: absolute;
+		right: 12px;
+		bottom: 8px;
+		z-index: 5;
+		padding: 2px 6px;
+		border-radius: 3px;
+		background: fade(@toolbox-background, 90%);
+		color: @paste-subtitle-color;
+		font-size: 9pt;
+		pointer-events: none;
+	}
+}
+
+body.codemirror-active {
+	#code-editor-source {
+		display: none;
+	}
+
+	#code-editor {
+		display: block;
+	}
+
+	.cm-editor {
+		font-size: @paste-font-size;
+		line-height: @paste-line-height;
+
+		@media @media-phone {
+			font-size: @paste-font-size-mobile;
+			line-height: @paste-line-height-mobile;
+		}
+	}
+
+	#editor-status:not(:empty) {
+		display: block;
+	}
 }
 
 .code-markdown {

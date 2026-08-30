@@ -1,4 +1,6 @@
 {{define "paste_edit_title"}}{{.Obj.ID}}{{end}}
+{{define "paste_edit_head"}}<script src="/js/codemirror/editor.js" type="module"></script>{{end}}
+{{define "index_head"}}<script src="/js/codemirror/editor.js" type="module"></script>{{end}}
 {{define "paste_edit_body"}}
 {{template "paste_edit_partial" .}}
 <div id="deleteModal" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
@@ -55,7 +57,9 @@
 </div>
 <div class="code code-line-numbers editor-line-numbers unselectable" id="line-numbers" aria-hidden="true"></div>
 <div class="textarea-height-wrapper">
-<textarea id="code-editor" autofocus="autofocus" tabindex="1" class="code" name="text" rows="20" wrap="off">{{if .Obj}}{{pasteBody .Obj}}{{end}}</textarea>
+<textarea id="code-editor-source" autofocus="autofocus" tabindex="1" class="code" name="text" rows="20" wrap="off" data-language="{{if .Obj}}{{.Obj.Language.ID}}{{else}}text{{end}}">{{if .Obj}}{{pasteBody .Obj}}{{end}}</textarea>
+<div id="code-editor" aria-label="Paste content"></div>
+<div id="editor-status" role="status" aria-live="polite"></div>
 </div>
 </div>
 <div class="well visible-phone" id="phone-paste-control-container"></div>

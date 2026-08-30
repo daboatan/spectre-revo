@@ -14,6 +14,18 @@
 		lineNumberTrough.data("lines", lines);
 		if(callback) callback();
 	};
+	$.fn.fillEditorLineNumbers = function(lines, callback) {
+		var lineNumberTrough = this[0];
+		if(!lineNumberTrough || lines === (0+$(lineNumberTrough).data("lines"))) return;
+
+		var numbers = new Array(lines);
+		for(var i = 0; i < lines; i++) {
+			numbers[i] = i + 1;
+		}
+		lineNumberTrough.textContent = numbers.join("\n");
+		$(lineNumberTrough).data("lines", lines);
+		if(callback) callback();
+	};
 	$.fn.scrollMinimal = function() {
 		/* From http://stackoverflow.com/questions/4217962/scroll-to-an-element-using-jquery */
 		var cTop = this.offset().top;

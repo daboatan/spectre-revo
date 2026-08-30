@@ -22,6 +22,8 @@ import (
 
 const USER_CACHE_MAX_ENTRIES int = 1000
 
+var personaHTTPClient = &http.Client{Timeout: 30 * time.Second}
+
 type contextKey int
 
 const userContextKey contextKey = 0
@@ -145,10 +147,18 @@ func authLoginPostHandler(w http.ResponseWriter, r *http.Request) {
 		if !RequestIsHTTPS(r) {
 			audience = "http://localhost:8080"
 		}
-		verifyResponse, err := http.PostForm("https://verifier.login.persona.org/verify", url.Values{
+		form := url.Values{
 			"assertion": {assertion},
 			"audience":  {audience},
-		})
+		}
+		verifyRequest, err := http.NewRequestWithContext(r.Context(), http.MethodPost, "https://verifier.login.persona.org/verify", strings.NewReader(form.Encode()))
+		if err != nil {
+			reply.Reason = "persona verification failed"
+			reply.ExtraData["error"] = err.Error()
+			return
+		}
+		verifyRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		verifyResponse, err := personaHTTPClient.Do(verifyRequest)
 		if err != nil {
 			// w.WriteHeader(http.StatusInternalServerError)
 			glog.Error("Persona Verify Request Failed: ", err)

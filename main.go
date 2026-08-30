@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/gob"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"html/template"
@@ -13,10 +15,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/DHowett/gotimeout"
@@ -34,6 +38,13 @@ var VERSION string = "<local build>"
 const PASTE_CACHE_MAX_ENTRIES int = 1000
 const PASTE_MAXIMUM_LENGTH ByteSize = 1048576
 const MAX_EXPIRE_DURATION time.Duration = 2 * 24 * time.Hour
+
+const (
+	serverReadHeaderTimeout = 30 * time.Second
+	serverReadTimeout       = 5 * time.Minute
+	serverWriteTimeout      = 5 * time.Minute
+	serverIdleTimeout       = 2 * time.Minute
+)
 
 type ExpiratorState map[gotimeout.ExpirableID]struct {
 	ExpirationTime time.Time
@@ -266,8 +277,14 @@ func pasteUpdateCore(o Model, w http.ResponseWriter, r *http.Request, newPaste b
 		}
 	}
 
-	pw, _ := p.Writer()
-	pw.Write([]byte(body))
+	pw, err := p.Writer()
+	if err != nil {
+		panic(err)
+	}
+	if _, err := io.WriteString(pw, body); err != nil {
+		_ = pw.WriteCloser.Close()
+		panic(err)
+	}
 	if r.FormValue("lang") != "" {
 		p.Language = LanguageNamed(r.FormValue("lang"))
 	}
@@ -293,13 +310,16 @@ func pasteUpdateCore(o Model, w http.ResponseWriter, r *http.Request, newPaste b
 
 	p.Title = r.FormValue("title")
 
-	pw.Close() // Saves p
+	if err := pw.Close(); err != nil { // Flushes the body, then saves p.
+		panic(err)
+	}
 
 	w.Header().Set("Location", pasteURL("show", p))
 	w.WriteHeader(http.StatusSeeOther)
 }
 
 func pasteCreate(w http.ResponseWriter, r *http.Request) {
+	defer errorRecoveryHandler(w)
 	body := r.FormValue("text")
 	if len(strings.TrimSpace(body)) == 0 {
 		// 400 here, 200 above (one is displayed to the user, one could be an API response.)
@@ -507,6 +527,9 @@ func authenticatePastePOSTHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func throttleAuthForRequest(r *http.Request) bool {
+	authThrottleMu.Lock()
+	defer authThrottleMu.Unlock()
+
 	ip := SourceIPForRequest(r)
 
 	id := mux.Vars(r)["id"]
@@ -535,6 +558,8 @@ func throttleAuthForRequest(r *http.Request) bool {
 
 	return false
 }
+
+var authThrottleMu sync.Mutex
 
 func requestVariable(rc *RenderContext, variable string) string {
 	v, _ := mux.Vars(rc.Request)[variable]
@@ -614,12 +639,12 @@ type RenderedPaste struct {
 }
 
 var renderCache struct {
-	mu sync.RWMutex
+	mu sync.Mutex
 	c  *lru.Cache
 }
 
 func renderPaste(p *Paste) template.HTML {
-	renderCache.mu.RLock()
+	renderCache.mu.Lock()
 	var cached *RenderedPaste
 	var cval interface{}
 	var ok bool
@@ -628,11 +653,9 @@ func renderPaste(p *Paste) template.HTML {
 			cached = cval.(*RenderedPaste)
 		}
 	}
-	renderCache.mu.RUnlock()
+	renderCache.mu.Unlock()
 
 	if !ok || cached.renderTime.Before(p.LastModified()) {
-		defer renderCache.mu.Unlock()
-		renderCache.mu.Lock()
 		out, err := FormatPaste(p)
 
 		if err != nil {
@@ -642,6 +665,8 @@ func renderPaste(p *Paste) template.HTML {
 
 		rendered := template.HTML(out)
 		if !p.Encrypted {
+			renderCache.mu.Lock()
+			defer renderCache.mu.Unlock()
 			if renderCache.c == nil {
 				renderCache.c = &lru.Cache{
 					MaxEntries: PASTE_CACHE_MAX_ENTRIES,
@@ -650,7 +675,7 @@ func renderPaste(p *Paste) template.HTML {
 					},
 				}
 			}
-			renderCache.c.Add(p.ID, &RenderedPaste{body: rendered, renderTime: time.Now()})
+			renderCache.c.Add(p.ID, &RenderedPaste{body: rendered, renderTime: p.LastModified()})
 			glog.Info("RENDER CACHE: Cached ", p.ID)
 		}
 
@@ -670,19 +695,26 @@ func pasteDestroyCallback(p *Paste) {
 
 	pasteExpirator.CancelObjectExpiration(p)
 
-	defer renderCache.mu.Unlock()
 	renderCache.mu.Lock()
-	if renderCache.c == nil {
-		return
+	if renderCache.c != nil {
+		glog.Info("RENDER CACHE: Removing ", p.ID, " due to destruction.")
+		// Clear the cached render when a paste is destroyed
+		renderCache.c.Remove(p.ID)
 	}
-
-	glog.Info("RENDER CACHE: Removing ", p.ID, " due to destruction.")
-	// Clear the cached render when a paste is destroyed
-	renderCache.c.Remove(p.ID)
+	renderCache.mu.Unlock()
 
 	reportStore.Delete(p.ID)
 
 	healthServer.IncrementMetric("paste.deleted")
+}
+
+func renderCacheLen() int {
+	renderCache.mu.Lock()
+	defer renderCache.mu.Unlock()
+	if renderCache.c == nil {
+		return 0
+	}
+	return renderCache.c.Len()
 }
 
 var pasteStore *FilesystemPasteStore
@@ -725,6 +757,12 @@ func (a *args) register() {
 
 func (a *args) parse() {
 	a.parseOnce.Do(func() {
+		// The testing package registers some of its flags after package init.
+		// Defaults are already assigned by register, so defer parsing to the
+		// test runner when this package is built as a test binary.
+		if strings.HasSuffix(os.Args[0], ".test") {
+			return
+		}
 		flag.Parse()
 	})
 }
@@ -914,11 +952,7 @@ func main() {
 		return pasteExpirator.Len()
 	})
 	healthServer.RegisterComputedMetric("paste.cache", func() interface{} {
-		if renderCache.c != nil {
-			return renderCache.c.Len()
-		} else {
-			return 0
-		}
+		return renderCacheLen()
 	})
 	healthServer.RegisterComputedMetric("uptime", func() interface{} {
 		return int(time.Since(launchTime) / time.Second)
@@ -1037,10 +1071,11 @@ func main() {
 		ms := &runtime.MemStats{}
 		runtime.ReadMemStats(ms)
 		stats["mem_alloc"] = fmt.Sprintf("%v", ByteSize(ms.Alloc))
-		if renderCache.c == nil {
+		cached := renderCacheLen()
+		if cached == 0 {
 			stats["cached"] = "(no cache)"
 		} else {
-			stats["cached"] = fmt.Sprintf("%d", renderCache.c.Len())
+			stats["cached"] = fmt.Sprintf("%d", cached)
 		}
 		dur := time.Since(launchTime)
 		dur = dur - (dur % time.Second)
@@ -1067,10 +1102,26 @@ func main() {
 	var addr string = arguments.addr
 	glog.Infof("Server listening on %s", addr)
 	server := &http.Server{
-		Addr: addr,
+		Addr:              addr,
+		ReadHeaderTimeout: serverReadHeaderTimeout,
+		ReadTimeout:       serverReadTimeout,
+		WriteTimeout:      serverWriteTimeout,
+		IdleTimeout:       serverIdleTimeout,
 	}
+
+	shutdownSignal := make(chan os.Signal, 1)
+	signal.Notify(shutdownSignal, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-shutdownSignal
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			glog.Error("Server shutdown error: ", err)
+		}
+	}()
+
 	err := server.ListenAndServe()
-	if err != nil {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		glog.Fatal("Server error: ", err)
 	}
 }

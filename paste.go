@@ -71,8 +71,10 @@ type PasteWriter struct {
 }
 
 func (pr *PasteWriter) Close() error {
-	pr.paste.Save()
-	return pr.WriteCloser.Close()
+	if err := pr.WriteCloser.Close(); err != nil {
+		return err
+	}
+	return pr.paste.Save()
 }
 
 type Paste struct {

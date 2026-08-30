@@ -206,6 +206,16 @@ code.ghost {
 				color: @line-numbers-hover;
 			}
 		}
+		&.editor-line-numbers {
+			padding-left: 4px;
+			padding-right: 4px;
+			white-space: pre;
+			cursor: default;
+
+			&.is-hidden {
+				display: none;
+			}
+		}
 	}
 }
 
@@ -397,6 +407,38 @@ span.paste-title {
 			font-size: (@paste-subtitle-font-size - 2pt);
 			margin-top: .2em;
 			display: block;
+		}
+	}
+}
+
+.paste-title-editor {
+	display: inline-block;
+	max-width: ~"calc(100% - 70px)";
+	vertical-align: middle;
+
+	#editable-paste-title {
+		width: 12em;
+		max-width: 100%;
+		margin: 0;
+		padding: 2px 6px;
+		border: 1px solid transparent;
+		border-radius: 3px;
+		background: transparent;
+		box-shadow: none;
+		color: @paste-title-color;
+		font: inherit;
+		line-height: normal;
+		.box-sizing(border-box);
+
+		&:hover, &:focus {
+			border-color: @minor-highlight-border;
+			background: lighten(@toolbox-background, 5%);
+			outline: none;
+		}
+
+		&::placeholder {
+			color: @paste-subtitle-color;
+			opacity: 1;
 		}
 	}
 }

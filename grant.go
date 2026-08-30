@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/DHowett/gotimeout"
@@ -16,11 +17,12 @@ type GrantStore struct {
 
 	filename  string
 	expirator *gotimeout.Expirator
+	mu        sync.RWMutex
 }
 
 type GrantID string
 
-func (r *GrantStore) Save() error {
+func (r *GrantStore) saveLocked() error {
 	asideFilename := r.filename + ".atomic"
 	file, err := os.Create(asideFilename)
 	if err != nil {
@@ -42,10 +44,13 @@ func (r *GrantStore) Save() error {
 func (r *GrantStore) NewGrant(id PasteID) GrantID {
 	newKey, _ := generateRandomBase32String(20, 32)
 	grantKey := GrantID(newKey)
+	r.mu.Lock()
 	r.Grants[grantKey] = id
+	r.mu.Unlock()
 
+	// The expirator persists the grant and its expiration together on its
+	// urgent flush cycle.
 	r.expirator.ExpireObject(grantKey, 48*time.Hour)
-	r.Save()
 
 	return grantKey
 	//GrantID returned
@@ -53,11 +58,14 @@ func (r *GrantStore) NewGrant(id PasteID) GrantID {
 
 func (r *GrantStore) Delete(p GrantID) {
 	r.expirator.CancelObjectExpiration(p)
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	delete(r.Grants, p)
-	r.Save()
 }
 
 func (r *GrantStore) Get(p GrantID) (PasteID, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	pid, ok := r.Grants[p]
 	return pid, ok
 }
@@ -86,6 +94,8 @@ func LoadGrantStore(filename string) *GrantStore {
 
 // grantKey passed in and made sure it exists.
 func (e *GrantStore) GetExpirable(grantKey gotimeout.ExpirableID) gotimeout.Expirable {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	_, ok := e.Grants[GrantID(grantKey)]
 	if !ok {
 		return nil
@@ -108,12 +118,15 @@ func (e *GrantStore) RequiresFlush() bool {
 }
 
 func (e *GrantStore) SaveExpirationHandles(hm *gotimeout.HandleMap) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.ExpiryJunk = hm
-	e.Save()
-	return nil
+	return e.saveLocked()
 }
 
 func (e *GrantStore) LoadExpirationHandles() (*gotimeout.HandleMap, error) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	return e.ExpiryJunk, nil
 }
 

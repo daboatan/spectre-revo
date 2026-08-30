@@ -259,15 +259,14 @@ $(function() {
 						Spectre.clearDefaultLanguage();
 					}
 				}
-				pasteForm.find("input[name='title']").val($("#editable-paste-title").text())
 			} else {
 				$("#deleteModal, #emptyPasteModal").modal("show");
 				return false;
 			}
 		});
-		$("#editable-paste-title").keypress(function(e) {
-			if(e.which == 13) {
-				$(codeeditor).focus();
+		$("#editable-paste-title").keydown(function(e) {
+			if(e.keyCode === 13) {
+				codeeditor.focus();
 				return false;
 			}
 			return true;
@@ -427,13 +426,35 @@ $(function() {
 				positionLinebar.call($("span:nth-child("+permabar.data("cur-line")+")", lineNumberTrough).get(0), permabar);
 			});
 		} else if(codeeditor.length > 0) {
-			codeeditor.on("input propertychange", function() {
-				lineNumberTrough.fillWithLineNumbers((codeeditor.val().match(/\n/g)||[]).length+1, function() {
+			var maxEditorLineNumbers = 5000;
+			var countEditorLines = function(value) {
+				var lines = 1;
+				for(var i = 0; i < value.length; i++) {
+					if(value.charCodeAt(i) === 10) lines++;
+				}
+				return lines;
+			};
+			var lineNumberFrame;
+			var updateEditorLineNumbers = function() {
+				lineNumberFrame = undefined;
+				var lines = countEditorLines(codeeditor[0].value);
+				if(lines > maxEditorLineNumbers) {
+					lineNumberTrough.addClass("is-hidden").empty().removeData("lines");
+					$(".textarea-height-wrapper").css("left", 0);
+					return;
+				}
+				lineNumberTrough.removeClass("is-hidden").fillEditorLineNumbers(lines, function() {
 					$(".textarea-height-wrapper").css("left", lineNumberTrough.outerWidth());
 				});
-			}).triggerHandler("input");
+			};
+			codeeditor.on("input propertychange", function() {
+				if(typeof lineNumberFrame === "undefined") {
+					lineNumberFrame = window.requestAnimationFrame(updateEditorLineNumbers);
+				}
+			});
+			window.requestAnimationFrame(updateEditorLineNumbers);
 			$(document).on("media-query-changed", function() {
-				codeeditor.triggerHandler("input");
+				$(".textarea-height-wrapper").css("left", lineNumberTrough.outerWidth());
 			});
 		}
 	})();

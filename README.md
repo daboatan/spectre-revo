@@ -106,6 +106,48 @@ If you prefer not to use Docker, you can run Spectre directly on your server.
    ```
    *Note*: The application by default runs on port `8619` via the install script or standard Go port `8080` if run directly, but this can be changed in your `.env` file.
 
+#### Build the standalone binary without `install.sh`
+
+The Go executable can be built directly without running the installation script. The current project requires Go 1.24 or newer.
+
+```bash
+go mod download
+mkdir -p dist
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+  -trimpath \
+  -ldflags="-s -w" \
+  -o dist/spectre-revo-linux-amd64 .
+```
+
+For an ARM64 VPS, replace `GOARCH=amd64` with `GOARCH=arm64` and adjust the output filename.
+
+The executable is statically linked, but Spectre still loads its templates, frontend assets, and language configuration at runtime. Copy these beside the executable:
+
+```text
+/opt/spectre/
+├── spectre-revo
+├── languages.yml
+├── public/
+└── templates/
+```
+
+Example installation and startup:
+
+```bash
+sudo install -d -o spectre -g spectre /opt/spectre /var/lib/spectre
+sudo install -m 0755 dist/spectre-revo-linux-amd64 /opt/spectre/spectre-revo
+sudo cp -R public templates languages.yml /opt/spectre/
+cd /opt/spectre
+sudo -u spectre SPECTRE_ENV=production ./spectre-revo \
+  -root /var/lib/spectre \
+  -addr 127.0.0.1:8080 \
+  -logtostderr
+```
+
+Keep the working directory at `/opt/spectre` (or another directory containing `public/`, `templates/`, and `languages.yml`). Put persistent data under the directory passed to `-root`.
+
+When upgrading an existing installation, stop the service, back up its data directory, replace the executable and runtime assets, and restart it with the same `-root` value. Do not replace or delete `session.key`, `client_session_enc.key`, `pastes/`, `accounts/`, `sessions/`, or the `*.gob` files. If moving the data directory between filesystems, preserve extended attributes because paste metadata is stored in xattrs; for example, use `rsync -aX`.
+
 ## Storage Architecture
 
 Spectre avoids complex database setups by using the filesystem efficiently:
